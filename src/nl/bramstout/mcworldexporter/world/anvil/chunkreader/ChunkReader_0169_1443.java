@@ -34,12 +34,7 @@ package nl.bramstout.mcworldexporter.world.anvil.chunkreader;
 import java.util.Arrays;
 
 import nl.bramstout.mcworldexporter.Reference;
-import nl.bramstout.mcworldexporter.nbt.NbtTag;
-import nl.bramstout.mcworldexporter.nbt.NbtTagByte;
-import nl.bramstout.mcworldexporter.nbt.NbtTagByteArray;
-import nl.bramstout.mcworldexporter.nbt.NbtTagCompound;
-import nl.bramstout.mcworldexporter.nbt.NbtTagList;
-import nl.bramstout.mcworldexporter.nbt.NbtTagString;
+import nl.bramstout.mcworldexporter.nbt.*;
 import nl.bramstout.mcworldexporter.translation.BlockTranslation.BlockTranslatorManager;
 import nl.bramstout.mcworldexporter.translation.TranslationRegistry;
 import nl.bramstout.mcworldexporter.world.Block;
@@ -77,7 +72,33 @@ public class ChunkReader_0169_1443 extends ChunkReader{
 		chunk._setBlocks(new int[maxSectionY - chunk._getChunkSectionOffset() + 1][]);
 		chunk._setBiomes(new int[maxSectionY - chunk._getChunkSectionOffset() + 1][]);
 
-		NbtTagByteArray biomesTag = (NbtTagByteArray) levelTag.get("Biomes");
+		// Import previous fix before making this into a repo
+		NbtTag biomesRawTag = levelTag.get("Biomes");
+		NbtTagByteArray biomesTag = null;
+
+		if (biomesRawTag instanceof NbtTagByteArray) {
+			biomesTag = (NbtTagByteArray) biomesRawTag;
+
+		} else if (biomesRawTag instanceof NbtTagIntArray) {
+			int[] intValues = ((NbtTagIntArray) biomesRawTag).getData();
+			byte[] byteValues = new byte[intValues.length];
+
+			for (int i = 0; i < intValues.length; i++) {
+				int value = intValues[i];
+				if (value < 0 || value > 255) {
+					System.out.println("Warning: biome value " + value + " at index " + i + " exceeds byte range!");
+				};
+				byteValues[i] = (byte) (value & 0xFF);
+
+			};
+
+			biomesTag = new NbtTagByteArray();
+			biomesTag.setData(byteValues);
+
+		} else {
+			throw new IllegalStateException("Unexpected Biomes tag type: " + biomesRawTag.getClass().getName());
+
+		};
 		
 		int sectionY;
 		int i = 0;
